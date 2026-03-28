@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#3C3489">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ivy 點數">
+<link rel="manifest" href="manifest.json">
+<title>Ivy 點數獎勵</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f4f2;min-height:100vh;color:#1a1a1a;}
+  .app{max-width:480px;margin:0 auto;padding:0 0 80px 0;min-height:100vh;}
+
+  /* Header */
+  .header{background:#fff;border-bottom:1px solid #e8e6e0;padding:16px;position:sticky;top:0;z-index:10;}
+  .header-inner{display:flex;align-items:center;gap:12px;}
+  .avatar{width:48px;height:48px;border-radius:50%;background:#EEEDFE;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;color:#3C3489;flex-shrink:0;}
+  .pts-big{font-size:36px;font-weight:700;color:#1a1a1a;line-height:1;}
+  .pts-lbl{font-size:12px;color:#888;margin-top:2px;}
+  .mode-tag{margin-left:auto;font-size:11px;padding:4px 10px;border-radius:20px;font-weight:600;flex-shrink:0;}
+  .tag-child{background:#E1F5EE;color:#085041;}
+  .tag-parent{background:#EEEDFE;color:#3C3489;}
+
+  /* Bottom Nav */
+  .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid #e8e6e0;display:flex;z-index:20;}
+  .bn-btn{flex:1;padding:10px 4px 12px;text-align:center;border:none;background:transparent;cursor:pointer;color:#888;font-size:10px;display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .bn-btn.active{color:#3C3489;}
+  .bn-icon{width:24px;height:24px;}
+  .bn-btn.active .bn-icon path,.bn-btn.active .bn-icon rect,.bn-btn.active .bn-icon circle{stroke:#3C3489;}
+
+  /* Sections */
+  .section{display:none;padding:16px;}
+  .section.active{display:block;}
+
+  /* Cards */
+  .card{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid #ece9e2;}
+  .sec-title{font-size:13px;color:#888;font-weight:600;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;}
+
+  /* Action Grid */
+  .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;}
+  .action-btn{padding:14px 10px;border-radius:12px;border:1.5px solid #ece9e2;background:#fff;cursor:pointer;text-align:center;transition:all .15s;-webkit-tap-highlight-color:transparent;}
+  .action-btn:active{transform:scale(.96);background:#f5f4f2;}
+  .pts{font-size:20px;font-weight:700;}
+  .plus{color:#0F6E56;}
+  .minus{color:#993C1D;}
+  .desc{font-size:12px;color:#888;margin-top:4px;line-height:1.3;}
+
+  /* Form */
+  .form-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .form-row input,.form-row select{flex:1;min-width:80px;padding:10px 12px;font-size:14px;border:1.5px solid #e8e6e0;border-radius:10px;background:#fff;color:#1a1a1a;-webkit-appearance:none;}
+  .form-row input:focus,.form-row select:focus{outline:none;border-color:#AFA9EC;}
+  .primary-btn{width:100%;padding:14px;background:#3C3489;color:#fff;border:none;border-radius:12px;font-size:16px;cursor:pointer;font-weight:600;margin-top:12px;transition:background .15s;}
+  .primary-btn:active{background:#534AB7;}
+  .ghost-btn{padding:10px 16px;border:1.5px solid #e8e6e0;border-radius:10px;background:#fff;cursor:pointer;color:#1a1a1a;font-size:14px;font-weight:500;white-space:nowrap;}
+  .ghost-btn:active{background:#f5f4f2;}
+
+  /* Log */
+  .log-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f0ede6;}
+  .log-item:last-child{border-bottom:none;}
+  .log-reason{font-size:14px;color:#1a1a1a;font-weight:500;}
+  .log-time{font-size:12px;color:#aaa;margin-top:2px;}
+  .log-pts{font-size:17px;font-weight:700;flex-shrink:0;}
+
+  /* Stats */
+  .stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
+  .stat-card{background:#f5f4f2;border-radius:12px;padding:12px 8px;text-align:center;}
+  .stat-num{font-size:22px;font-weight:700;color:#1a1a1a;}
+  .stat-lbl{font-size:11px;color:#888;margin-top:2px;}
+
+  /* Rewards */
+  .reward-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f0ede6;}
+  .reward-item:last-child{border-bottom:none;}
+  .reward-name{font-size:14px;font-weight:600;color:#1a1a1a;}
+  .reward-price{font-size:12px;color:#aaa;margin-top:2px;}
+  .pts-badge{background:#EEEDFE;color:#3C3489;font-size:12px;font-weight:700;padding:5px 10px;border-radius:20px;}
+  .redeem-btn{background:transparent;border:1.5px solid #AFA9EC;color:#3C3489;padding:7px 14px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;margin-left:8px;}
+  .redeem-btn:disabled{opacity:.35;cursor:not-allowed;}
+  .redeem-btn:not(:disabled):active{background:#EEEDFE;}
+
+  /* Progress bar */
+  .prog-track{background:#f0ede6;border-radius:10px;height:8px;margin-top:8px;overflow:hidden;}
+  .prog-fill{background:#534AB7;height:100%;border-radius:10px;transition:width .4s;}
+
+  /* Lock Screen */
+  .lock-screen{padding:32px 24px;text-align:center;}
+  .lock-icon-wrap{width:64px;height:64px;border-radius:50%;background:#EEEDFE;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
+  .lock-title{font-size:20px;font-weight:700;color:#1a1a1a;}
+  .lock-hint{font-size:14px;color:#888;margin-top:6px;}
+  .pin-dots{display:flex;gap:12px;justify-content:center;margin:20px 0 8px;}
+  .pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid #AFA9EC;background:transparent;transition:background .15s;}
+  .pin-dot.filled{background:#3C3489;border-color:#3C3489;}
+  .err-msg{color:#993C1D;font-size:13px;min-height:20px;margin-bottom:12px;}
+  .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;margin:0 auto;}
+  .num-btn{padding:18px;font-size:22px;font-weight:600;border:1.5px solid #e8e6e0;border-radius:14px;background:#fff;cursor:pointer;color:#1a1a1a;transition:background .1s;}
+  .num-btn:active{background:#f5f4f2;}
+  .num-btn.del{font-size:13px;color:#888;font-weight:500;}
+  .num-btn.cancel{font-size:13px;color:#888;font-weight:500;}
+
+  /* Charts */
+  .chart-wrap{position:relative;width:100%;}
+  .legend-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;font-size:12px;color:#888;}
+  .legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px;flex-shrink:0;vertical-align:middle;}
+
+  /* Child view */
+  .child-section-btn{display:block;width:100%;padding:14px;background:#3C3489;color:#fff;border:none;border-radius:12px;font-size:16px;cursor:pointer;font-weight:600;text-align:center;}
+  .child-section-btn:active{background:#534AB7;}
+
+  /* Toast */
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#3C3489;color:#fff;padding:10px 22px;border-radius:24px;font-size:14px;font-weight:500;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99;white-space:nowrap;}
+  .toast.show{opacity:1;}
+
+  /* Empty state */
+  .empty{text-align:center;color:#aaa;font-size:14px;padding:32px 0;}
+
+  /* Danger zone */
+  .danger-btn{width:100%;padding:12px;border:1.5px solid #E24B4A;border-radius:12px;background:transparent;color:#A32D2D;cursor:pointer;font-size:14px;font-weight:500;}
+  .danger-btn:active{background:#FCEBEB;}
+
+  input[type=number]{-moz-appearance:textfield;}
+  input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== CHILD MODE ===== -->
+  <div id="mode-child">
+    <div class="header">
+      <div class="header-inner">
+        <div class="avatar" id="c-avatar">I</div>
+        <div>
+          <div id="c-name" style="font-size:13px;color:#888;font-weight:500;">Ivy</div>
+          <div class="pts-big" id="c-pts">0</div>
+          <div class="pts-lbl">累積點數</div>
+        </div>
+        <span class="mode-tag tag-child">孩子模式</span>
+      </div>
+    </div>
+
+    <div style="padding:16px;">
+      <div class="card" style="text-align:center;padding:20px;">
+        <div style="font-size:14px;color:#888;margin-bottom:16px;">加扣點與兌換請爸媽協助操作</div>
+        <button class="child-section-btn" onclick="goToLock()">切換家長模式</button>
+      </div>
+
+      <div class="card">
+        <div class="sec-title">最近紀錄</div>
+        <div id="c-log-preview"></div>
+      </div>
+
+      <div class="card">
+        <div class="sec-title">下一個目標</div>
+        <div id="c-reward-preview"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LOCK SCREEN ===== -->
+  <div id="mode-lock" style="display:none;">
+    <div class="lock-screen">
+      <div class="lock-icon-wrap">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3C3489" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div class="lock-title">家長模式</div>
+      <div class="lock-hint">請輸入 4 位數密碼</div>
+      <div class="pin-dots">
+        <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+        <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+      </div>
+      <div class="err-msg" id="pin-err"></div>
+      <div class="numpad">
+        <button class="num-btn" onclick="np('1')">1</button>
+        <button class="num-btn" onclick="np('2')">2</button>
+        <button class="num-btn" onclick="np('3')">3</button>
+        <button class="num-btn" onclick="np('4')">4</button>
+        <button class="num-btn" onclick="np('5')">5</button>
+        <button class="num-btn" onclick="np('6')">6</button>
+        <button class="num-btn" onclick="np('7')">7</button>
+        <button class="num-btn" onclick="np('8')">8</button>
+        <button class="num-btn" onclick="np('9')">9</button>
+        <button class="num-btn del" onclick="npBack()">⌫ 刪除</button>
+        <button class="num-btn" onclick="np('0')">0</button>
+        <button class="num-btn cancel" onclick="showChild()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SETUP PIN ===== -->
+  <div id="mode-setup" style="display:none;">
+    <div class="lock-screen">
+      <div class="lock-icon-wrap">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3C3489" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div class="lock-title">設定家長密碼</div>
+      <div class="lock-hint" id="setup-hint">請輸入新的 4 位數密碼</div>
+      <div class="pin-dots">
+        <div class="pin-dot" id="s0"></div><div class="pin-dot" id="s1"></div>
+        <div class="pin-dot" id="s2"></div><div class="pin-dot" id="s3"></div>
+      </div>
+      <div class="err-msg" id="setup-err"></div>
+      <div class="numpad">
+        <button class="num-btn" onclick="sp('1')">1</button>
+        <button class="num-btn" onclick="sp('2')">2</button>
+        <button class="num-btn" onclick="sp('3')">3</button>
+        <button class="num-btn" onclick="sp('4')">4</button>
+        <button class="num-btn" onclick="sp('5')">5</button>
+        <button class="num-btn" onclick="sp('6')">6</button>
+        <button class="num-btn" onclick="sp('7')">7</button>
+        <button class="num-btn" onclick="sp('8')">8</button>
+        <button class="num-btn" onclick="sp('9')">9</button>
+        <button class="num-btn del" onclick="spBack()">⌫ 刪除</button>
+        <button class="num-btn" onclick="sp('0')">0</button>
+        <button class="num-btn cancel" onclick="showParent()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PARENT MODE ===== -->
+  <div id="mode-parent" style="display:none;">
+    <div class="header">
+      <div class="header-inner">
+        <div class="avatar" id="p-avatar">I</div>
+        <div>
+          <div id="p-name" style="font-size:13px;color:#888;font-weight:500;">Ivy</div>
+          <div class="pts-big" id="p-pts">0</div>
+          <div class="pts-lbl">累積點數</div>
+        </div>
+        <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <span class="mode-tag tag-parent">家長模式</span>
+          <button onclick="showChild()" style="font-size:11px;color:#888;background:none;border:1px solid #e8e6e0;border-radius:8px;padding:3px 8px;cursor:pointer;">鎖定</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sections -->
+    <div id="sec-add" class="section active">
+      <div class="card">
+        <div class="sec-title">加分情境</div>
+        <div class="action-grid" id="add-grid"></div>
+      </div>
+      <div class="card">
+        <div class="sec-title">扣分情境</div>
+        <div class="action-grid" id="minus-grid"></div>
+      </div>
+      <div class="card">
+        <div class="sec-title">自訂加扣點</div>
+        <div class="form-row" style="margin-top:0;">
+          <input type="text" id="cr" placeholder="輸入原因..." style="flex:2;min-width:100px;"/>
+          <select id="cd"><option value="1">加分</option><option value="-1">扣分</option></select>
+          <input type="number" id="cp" min="1" max="99" value="3" style="width:60px;flex:none;"/>
+        </div>
+        <button class="primary-btn" onclick="addCustom()">確認記錄</button>
+      </div>
+    </div>
+
+    <div id="sec-log" class="section">
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-num" id="s-total">0</div><div class="stat-lbl">目前點數</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:#0F6E56" id="s-gain">0</div><div class="stat-lbl">累計加分</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:#993C1D" id="s-lose">0</div><div class="stat-lbl">累計扣分</div></div>
+      </div>
+      <div class="card">
+        <div class="sec-title">點數紀錄</div>
+        <div id="log-list"><div class="empty">還沒有任何紀錄</div></div>
+      </div>
+    </div>
+
+    <div id="sec-stats" class="section">
+      <div class="card">
+        <div class="sec-title">每週點數趨勢（近 7 週）</div>
+        <div class="legend-row">
+          <span><span class="legend-dot" style="background:#1D9E75;"></span>加分</span>
+          <span><span class="legend-dot" style="background:#D85A30;"></span>扣分</span>
+          <span><span class="legend-dot" style="background:#534AB7;"></span>淨點數</span>
+        </div>
+        <div class="chart-wrap" style="height:220px;"><canvas id="trend-chart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="sec-title">加分原因分佈</div>
+        <div class="legend-row" id="add-pie-leg"></div>
+        <div class="chart-wrap" style="height:190px;"><canvas id="add-pie"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="sec-title">扣分原因分佈</div>
+        <div class="legend-row" id="minus-pie-leg"></div>
+        <div class="chart-wrap" style="height:190px;"><canvas id="minus-pie"></canvas></div>
+      </div>
+    </div>
+
+    <div id="sec-rewards" class="section">
+      <div class="card">
+        <div style="font-size:13px;color:#888;margin-bottom:12px;">目前點數：<strong id="rew-pts" style="color:#1a1a1a;">0</strong> 點</div>
+        <div id="rew-list"></div>
+      </div>
+    </div>
+
+    <div id="sec-settings" class="section">
+      <div class="card">
+        <div class="sec-title">孩子名稱</div>
+        <div class="form-row" style="margin-top:0;">
+          <input type="text" id="name-inp" value="Ivy"/>
+          <button class="ghost-btn" onclick="saveName()">儲存</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec-title">家長密碼</div>
+        <button class="ghost-btn" style="width:100%;text-align:center;" onclick="startSetup()">重新設定密碼</button>
+      </div>
+      <div class="card">
+        <div class="sec-title">新增加分情境</div>
+        <div class="form-row" style="margin-top:0;">
+          <input type="text" id="nal" placeholder="情境名稱" style="flex:2;"/>
+          <input type="number" id="nap" min="1" max="99" value="5" style="width:55px;flex:none;"/>
+          <button class="ghost-btn" onclick="addAct('add')">新增</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec-title">新增扣分情境</div>
+        <div class="form-row" style="margin-top:0;">
+          <input type="text" id="nml" placeholder="情境名稱" style="flex:2;"/>
+          <input type="number" id="nmp" min="1" max="99" value="3" style="width:55px;flex:none;"/>
+          <button class="ghost-btn" onclick="addAct('minus')">新增</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec-title">新增兌換獎勵</div>
+        <div class="form-row" style="margin-top:0;gap:6px;">
+          <input type="text" id="nrn" placeholder="獎勵名稱" style="flex:2;min-width:90px;"/>
+          <input type="number" id="nrp" min="1" value="50" style="width:55px;flex:none;"/>
+          <input type="text" id="nrpr" placeholder="金額說明" style="flex:1;min-width:70px;"/>
+          <button class="ghost-btn" onclick="addRew()">新增</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec-title" style="color:#A32D2D;">重置資料</div>
+        <button class="danger-btn" onclick="resetAll()">清除所有紀錄與點數</button>
+      </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+      <button class="bn-btn active" onclick="switchSec('add',this)">
+        <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        <span>加扣點</span>
+      </button>
+      <button class="bn-btn" onclick="switchSec('log',this)">
+        <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>紀錄</span>
+      </button>
+      <button class="bn-btn" onclick="switchSec('stats',this)">
+        <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>統計</span>
+      </button>
+      <button class="bn-btn" onclick="switchSec('rewards',this)">
+        <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+        <span>兌換</span>
+      </button>
+      <button class="bn-btn" onclick="switchSec('settings',this)">
+        <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>設定</span>
+      </button>
+    </nav>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ── State ──────────────────────────────────────────
+let S = {
+  points:0, childName:'Ivy', pin:'1234', log:[],
+  addActions:[
+    {label:'幫忙家事',pts:3},{label:'主動閱讀',pts:3},
+    {label:'禮貌待人',pts:2},{label:'考試進步',pts:10}
+  ],
+  minusActions:[
+    {label:'頂嘴/態度不好',pts:3},{label:'說謊',pts:5},{label:'打架/動手',pts:8}
+  ],
+  rewards:[
+    {name:'文具一份',pts:30,price:'約 50 元'},
+    {name:'小玩具',pts:60,price:'約 100 元'},
+    {name:'指定玩具',pts:120,price:'約 200 元'},
+    {name:'大禮物',pts:200,price:'約 500 元'}
+  ]
+};
+
+function save(){try{localStorage.setItem('ivyAppV1',JSON.stringify(S));}catch(e){}}
+function load(){try{const d=localStorage.getItem('ivyAppV1');if(d)S=JSON.parse(d);}catch(e){}}
+load();
+
+// ── Mode switching ──────────────────────────────────
+function showChild(){
+  document.getElementById('mode-child').style.display='';
+  document.getElementById('mode-lock').style.display='none';
+  document.getElementById('mode-setup').style.display='none';
+  document.getElementById('mode-parent').style.display='none';
+  renderChild();
+}
+function showParent(){
+  document.getElementById('mode-child').style.display='none';
+  document.getElementById('mode-lock').style.display='none';
+  document.getElementById('mode-setup').style.display='none';
+  document.getElementById('mode-parent').style.display='';
+  render();
+}
+function goToLock(){
+  pinBuf='';updatePinDots();
+  document.getElementById('pin-err').textContent='';
+  document.getElementById('mode-child').style.display='none';
+  document.getElementById('mode-lock').style.display='';
+}
+function startSetup(){
+  setupBuf='';setupStage=0;setupFirst='';
+  document.getElementById('setup-hint').textContent='請輸入新的 4 位數密碼';
+  document.getElementById('setup-err').textContent='';
+  updateSetupDots();
+  document.getElementById('mode-parent').style.display='none';
+  document.getElementById('mode-setup').style.display='';
+}
+
+// ── PIN logic ───────────────────────────────────────
+let pinBuf='';
+function np(n){
+  if(pinBuf.length>=4)return;
+  pinBuf+=n;updatePinDots();
+  if(pinBuf.length===4){
+    setTimeout(()=>{
+      if(pinBuf===S.pin){pinBuf='';updatePinDots();showParent();}
+      else{document.getElementById('pin-err').textContent='密碼錯誤，請重試';pinBuf='';updatePinDots();}
+    },200);
+  }
+}
+function npBack(){pinBuf=pinBuf.slice(0,-1);updatePinDots();document.getElementById('pin-err').textContent='';}
+function updatePinDots(){for(let i=0;i<4;i++)document.getElementById('d'+i).classList.toggle('filled',i<pinBuf.length);}
+
+let setupBuf='',setupStage=0,setupFirst='';
+function sp(n){
+  if(setupBuf.length>=4)return;
+  setupBuf+=n;updateSetupDots();
+  if(setupBuf.length===4){
+    setTimeout(()=>{
+      if(setupStage===0){
+        setupFirst=setupBuf;setupBuf='';setupStage=1;
+        document.getElementById('setup-hint').textContent='請再輸入一次確認';
+        document.getElementById('setup-err').textContent='';
+        updateSetupDots();
+      } else {
+        if(setupBuf===setupFirst){
+          S.pin=setupBuf;save();showToast('密碼設定成功！');showParent();
+        } else {
+          document.getElementById('setup-err').textContent='兩次不一致，請重新輸入';
+          setupBuf='';setupStage=0;setupFirst='';
+          document.getElementById('setup-hint').textContent='請輸入新的 4 位數密碼';
+          updateSetupDots();
+        }
+      }
+    },200);
+  }
+}
+function spBack(){setupBuf=setupBuf.slice(0,-1);updateSetupDots();document.getElementById('setup-err').textContent='';}
+function updateSetupDots(){for(let i=0;i<4;i++)document.getElementById('s'+i).classList.toggle('filled',i<setupBuf.length);}
+
+// ── Toast ───────────────────────────────────────────
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── Section switching ───────────────────────────────
+let trendInst=null,addPieInst=null,minusPieInst=null;
+function switchSec(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.bn-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='stats')setTimeout(renderCharts,60);
+}
+
+// ── Points ──────────────────────────────────────────
+function applyPts(delta,reason){
+  S.points+=delta;
+  const now=new Date();
+  const ts=(now.getMonth()+1)+'/'+now.getDate()+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  S.log.unshift({pts:delta,reason,time:ts,date:now.toISOString()});
+  save();render();
+  showToast((delta>0?'+':'')+delta+' 點：'+reason);
+}
+function addCustom(){
+  const r=document.getElementById('cr').value.trim();
+  const dir=parseInt(document.getElementById('cd').value);
+  const p=parseInt(document.getElementById('cp').value)||1;
+  if(!r){showToast('請輸入原因');return;}
+  applyPts(dir*p,r);document.getElementById('cr').value='';
+}
+function addAct(type){
+  const lbl=document.getElementById(type==='add'?'nal':'nml').value.trim();
+  const p=parseInt(document.getElementById(type==='add'?'nap':'nmp').value)||1;
+  if(!lbl){showToast('請輸入情境名稱');return;}
+  if(type==='add')S.addActions.push({label:lbl,pts:p});
+  else S.minusActions.push({label:lbl,pts:p});
+  save();render();
+  document.getElementById(type==='add'?'nal':'nml').value='';
+  showToast('已新增');
+}
+function addRew(){
+  const n=document.getElementById('nrn').value.trim();
+  const p=parseInt(document.getElementById('nrp').value)||1;
+  const pr=document.getElementById('nrpr').value.trim();
+  if(!n){showToast('請輸入獎勵名稱');return;}
+  S.rewards.push({name:n,pts:p,price:pr});
+  S.rewards.sort((a,b)=>a.pts-b.pts);
+  save();render();
+  document.getElementById('nrn').value='';document.getElementById('nrpr').value='';
+  showToast('已新增獎勵');
+}
+function saveName(){
+  const n=document.getElementById('name-inp').value.trim();
+  if(!n)return;S.childName=n;save();render();showToast('已儲存');
+}
+function redeem(name,pts){
+  if(S.points<pts)return;
+  if(!confirm('確定兌換「'+name+'」（'+pts+' 點）？'))return;
+  applyPts(-pts,'兌換獎勵：'+name);
+}
+function resetAll(){
+  if(!confirm('確定要清除所有紀錄與點數？'))return;
+  S.points=0;S.log=[];save();render();showToast('已重置');
+}
+
+// ── Charts ──────────────────────────────────────────
+function getWeekKey(iso){
+  const d=new Date(iso),day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);
+  const m=new Date(d.getFullYear(),d.getMonth(),diff);
+  return m.getFullYear()+'-'+(m.getMonth()+1)+'-'+m.getDate();
+}
+function renderCharts(){
+  const now=new Date(),weeks=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(now);d.setDate(d.getDate()-i*7);
+    const day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);
+    const m=new Date(d.getFullYear(),d.getMonth(),diff);
+    weeks.push({key:m.getFullYear()+'-'+(m.getMonth()+1)+'-'+m.getDate(),label:(m.getMonth()+1)+'/'+(m.getDate()),gained:0,lost:0});
+  }
+  S.log.forEach(l=>{
+    if(!l.date)return;
+    const w=weeks.find(x=>x.key===getWeekKey(l.date));
+    if(!w)return;
+    if(l.pts>0)w.gained+=l.pts;else w.lost+=Math.abs(l.pts);
+  });
+  if(trendInst){trendInst.destroy();trendInst=null;}
+  trendInst=new Chart(document.getElementById('trend-chart'),{
+    type:'bar',
+    data:{
+      labels:weeks.map(w=>w.label),
+      datasets:[
+        {label:'加分',data:weeks.map(w=>w.gained),backgroundColor:'#5DCAA5',borderRadius:4,order:2},
+        {label:'扣分',data:weeks.map(w=>w.lost),backgroundColor:'#F0997B',borderRadius:4,order:3},
+        {label:'淨點數',data:weeks.map(w=>w.gained-w.lost),type:'line',borderColor:'#534AB7',backgroundColor:'transparent',pointBackgroundColor:'#534AB7',pointRadius:4,tension:0.3,order:1}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:11},color:'#888'}},y:{grid:{color:'rgba(0,0,0,.06)'},ticks:{font:{size:11},color:'#888',callback:v=>v+' 點'}}}}
+  });
+
+  const addColors=['#1D9E75','#534AB7','#EF9F27','#D4537E','#378ADD','#5DCAA5','#AFA9EC'];
+  const minusColors=['#D85A30','#E24B4A','#BA7517','#72243E','#185FA5','#F0997B','#F7C1C1'];
+
+  function buildPie(cid,lid,isAdd){
+    const map={};
+    S.log.forEach(l=>{if(isAdd?l.pts>0:l.pts<0){map[l.reason]=(map[l.reason]||0)+Math.abs(l.pts);}});
+    const keys=Object.keys(map),vals=keys.map(k=>map[k]),total=vals.reduce((a,b)=>a+b,0);
+    const colors=isAdd?addColors:minusColors;
+    const legEl=document.getElementById(lid);
+    legEl.innerHTML=keys.length===0?`<span style="color:#aaa;font-size:13px;">尚無紀錄</span>`:
+      keys.map((k,i)=>`<span><span class="legend-dot" style="background:${colors[i%colors.length]};"></span>${k} ${total>0?Math.round(vals[i]/total*100):0}%</span>`).join('');
+    const inst=isAdd?addPieInst:minusPieInst;
+    if(inst){inst.destroy();}
+    const c=new Chart(document.getElementById(cid),{
+      type:'doughnut',
+      data:{labels:keys.length?keys:['暫無'],datasets:[{data:keys.length?vals:[1],backgroundColor:keys.length?colors.slice(0,keys.length):['#e8e6e0'],borderWidth:keys.length?2:0,borderColor:'#fff'}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false},tooltip:{enabled:!!keys.length,callbacks:{label:ctx=>{const pct=total>0?Math.round(ctx.parsed/total*100):0;return ctx.label+': '+ctx.parsed+' 點 ('+pct+'%)';}}}}}
+    });
+    if(isAdd)addPieInst=c;else minusPieInst=c;
+  }
+  buildPie('add-pie','add-pie-leg',true);
+  buildPie('minus-pie','minus-pie-leg',false);
+}
+
+// ── Render ──────────────────────────────────────────
+function renderChild(){
+  const name=S.childName;
+  document.getElementById('c-avatar').textContent=name.charAt(0).toUpperCase();
+  document.getElementById('c-name').textContent=name;
+  document.getElementById('c-pts').textContent=S.points;
+  const logEl=document.getElementById('c-log-preview');
+  logEl.innerHTML=S.log.length===0?'<div class="empty">還沒有紀錄</div>':
+    S.log.slice(0,4).map(l=>`<div class="log-item"><div><div class="log-reason">${l.reason}</div><div class="log-time">${l.time}</div></div><div class="log-pts ${l.pts>0?'plus':'minus'}">${l.pts>0?'+':''}${l.pts}</div></div>`).join('');
+  const rewEl=document.getElementById('c-reward-preview');
+  const next=S.rewards.find(r=>r.pts>S.points);
+  if(next){
+    const need=next.pts-S.points;
+    rewEl.innerHTML=`<div style="padding:4px 0;"><div style="font-size:15px;font-weight:600;color:#1a1a1a;">${next.name}</div><div style="font-size:13px;color:#888;margin-top:4px;">還差 <strong style="color:#3C3489;">${need} 點</strong>（需要 ${next.pts} 點）</div><div class="prog-track"><div class="prog-fill" style="width:${Math.round(Math.min(S.points/next.pts*100,100))}%;"></div></div></div>`;
+  } else if(S.rewards.length>0){
+    rewEl.innerHTML='<div style="text-align:center;padding:16px 0;color:#0F6E56;font-weight:600;">所有獎勵都可以兌換了！</div>';
+  } else {rewEl.innerHTML='<div class="empty">尚未設定獎勵</div>';}
+}
+
+function render(){
+  const name=S.childName;
+  ['p-avatar','c-avatar'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=name.charAt(0).toUpperCase();});
+  ['p-name','c-name'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=name;});
+  document.getElementById('p-pts').textContent=S.points;
+  document.getElementById('name-inp').value=name;
+  renderChild();
+
+  document.getElementById('add-grid').innerHTML=S.addActions.map(a=>
+    `<button class="action-btn" onclick="applyPts(${a.pts},'${a.label.replace(/'/g,"\\'")}')"><div class="pts plus">+${a.pts}</div><div class="desc">${a.label}</div></button>`
+  ).join('');
+  document.getElementById('minus-grid').innerHTML=S.minusActions.map(a=>
+    `<button class="action-btn" onclick="applyPts(-${a.pts},'${a.label.replace(/'/g,"\\'")}')"><div class="pts minus">-${a.pts}</div><div class="desc">${a.label}</div></button>`
+  ).join('');
+
+  let gained=0,lost=0;
+  S.log.forEach(l=>{if(l.pts>0)gained+=l.pts;else lost+=Math.abs(l.pts);});
+  document.getElementById('s-total').textContent=S.points;
+  document.getElementById('s-gain').textContent='+'+gained;
+  document.getElementById('s-lose').textContent='-'+lost;
+
+  const logList=document.getElementById('log-list');
+  logList.innerHTML=S.log.length===0?'<div class="empty">還沒有任何紀錄</div>':
+    S.log.map(l=>`<div class="log-item"><div><div class="log-reason">${l.reason}</div><div class="log-time">${l.time}</div></div><div class="log-pts ${l.pts>0?'plus':'minus'}">${l.pts>0?'+':''}${l.pts}</div></div>`).join('');
+
+  document.getElementById('rew-pts').textContent=S.points;
+  document.getElementById('rew-list').innerHTML=S.rewards.map(r=>
+    `<div class="reward-item"><div><div class="reward-name">${r.name}</div>${r.price?`<div class="reward-price">${r.price}</div>`:''}</div><div style="display:flex;align-items:center;"><span class="pts-badge">${r.pts} 點</span><button class="redeem-btn" ${S.points<r.pts?'disabled':''} onclick="redeem('${r.name.replace(/'/g,"\\'")}',${r.pts})">兌換</button></div></div>`
+  ).join('');
+}
+
+// ── Service Worker ──────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+
+// ── Init ────────────────────────────────────────────
+showChild();
+</script>
+</body>
+</html>
