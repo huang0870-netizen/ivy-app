@@ -2,7 +2,8 @@
   "name": "Ivy 點數獎勵",
   "short_name": "Ivy 點數",
   "description": "Ivy 的點數獎勵與懲罰記錄系統",
-  "start_url": "/",
+  "start_url": "/ivy-app/index.html",
+  "scope": "/ivy-app/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
@@ -10,13 +11,13 @@
   "lang": "zh-TW",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "/ivy-app/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "/ivy-app/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
